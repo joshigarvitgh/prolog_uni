@@ -51,11 +51,11 @@ printstatus([_ | LetterListTail], UserGuesses, NewStarCount):-
 % takes FileName as variable, asserts every word in this file to knowledgeBase, recursively calls main_
 load_database(FileName):-
     (exists_file(FileName) ->
-          open(FileName,read,InputList),
-          repeat,
-          read_line_to_string(InputList,Line),
-          assert(knowledgeBase(Line)),
-          Line=end_of_file, close(InputList),
-          retract(knowledgeBase(end_of_file));
-          writeln('File does not exist')),
+    open(FileName,read,InputList),
+    repeat,
+    read_line_to_string(InputList,Line),
+    (knowledgeBase(Line) -> true; asserta(knowledgeBase(Line))),
+    Line=end_of_file, close(InputList),
+    retract(knowledgeBase(end_of_file));
+    writeln('File does not exist')),
     main_.
