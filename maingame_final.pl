@@ -12,7 +12,7 @@ guessword:-
     bagof(X,knowledgeBase(X),W),
     random_member(M,W),
     atom_length(M,X),
-    assert(selected_word(M)),         % TF: should be retracted at some point? maybe I've just overlooked that
+    assert(selected_word(M)),
     write('Please guess the word: '),
     print_stars(X),
     writeln(''),
@@ -26,7 +26,8 @@ readfacts(String0):-
     repeat,
     read_line_to_string(In,X),
     assert(knowledgeBase(X)),
-    X=end_of_file,close(In).
+    X=end_of_file,close(In),
+    retract(knowledgeBase(end_of_file)).                    % TF: added so we don't have multiple end_of_file-atoms in knowledgeBase
 
 
 readfacts(_):- knowledgeBase(end_of_file),retract(knowledgeBase(end_of_file)),!,readfacts(_).
@@ -57,48 +58,48 @@ main_:-
     write("e : End the game"),nl,
         get_single_char(C),atom_codes(Y,[C]),check(Y).
     
-    check(r):-write("Please enter the file name"),read_string(user_input,"\n","\t",_,String0),checkfileindb(String0),!.
-    check(l):-listofKB,!.
-    check(a):-addword.
-    check(d):-deleteword,main_,!.
-    check(w):-writedb,main_,!.
+    check(r):-writeln("Please enter the file name"),read_string(user_input,"\n","\t",_,String0),checkfileindb(String0),main_,!.
+    check(l):-listofKB,main_,!.
+    check(a):-addword,main_,!.
+    check(d):-deleteword,main_,main_,!.
+    check(w):-writedb,main_,main_,!.
     check(g):-guessword(),main_,!.
-    check(e):-retractall(knowledgeBase/1),retractall(loadingstatus/1),retractall(databasefile/1),retractall(loadedfiles/1),halt.
+    check(e):-retractall(knowledgeBase/1),retractall(loadingstatus/1),retractall(databasefile/1),retractall(loadedfiles/1),!.
     check(_):-write("wrong choice"),nl,main_.
 
 
 
 % Function for chacking the file, if its in database or not, if yes then
 % it will also load the file
-checkfileindb(String0):-exists_file(String0),readfacts(String0),main_,!.
-checkfileindb(_):-write("File does not exist"),nl,main_,!.
+checkfileindb(String0):-exists_file(String0),readfacts(String0),!.
+checkfileindb(_):-write("File does not exist"),nl,!.
 % it will check if all the files are loaded in KB if not it will load
 % them
-listofKB:- loaddatabase,listing(knowledgeBase/1),main_,!.
+listofKB:- loaddatabase,listing(knowledgeBase/1),!.
 listofKB:-write("Database is not loaded, please load Database"),nl,main_,!.
 
 loaddatabase:- loadedfiles(X),readfacts(X),loaddatabase,!.
-loaddatabase:- write("loading is completed"),assert(loadingstatus(1)),listing(knowledgeBase/1),main_,!.
+loaddatabase:- write("loading is completed"),assert(loadingstatus(1)),listing(knowledgeBase/1),!.
 
 % It will ask for word, will check first if KB is loaded, if yes and
 % word doesnot exist in DB it will add the word else it will say word
 % already exist, if KB is not loaded it will ask you to load the KB
 addword:-write("Please write down the string:"), read_string(user_input,"\n","\t",_,String),write("Do you wanna save changes :"),write(String),nl, write("y or n"),nl,get_single_char(C),atom_codes(Y,[C]),checkAdd(Y,String) .
 checkAdd(y,String):- checkKB(String).
-checkAdd(n,_):-main_,!.
-checkAdd(_,_):-write("wrong choice"),nl,main_,!.
+checkAdd(n,_):-!.
+checkAdd(_,_):-write("wrong choice"),nl,!.
 
-checkKB(String):-loadingstatus(1), knowledgeBase(String),write("Word already exists"),nl,main_,!.
-checkKB(String):-loadingstatus(1), assert(knowledgeBase(String)),write("Sucessfully Added!"),nl,main_,!.
-checkKB(_):-loadingstatus(0), write("Database is not fully loaded yet, Please load the database first:)"),nl,main_,!.
+checkKB(String):-loadingstatus(1), knowledgeBase(String),write("Word already exists"),nl,!.
+checkKB(String):-loadingstatus(1), assert(knowledgeBase(String)),write("Sucessfully Added!"),nl,!.
+checkKB(_):-loadingstatus(0), write("Database is not fully loaded yet, Please load the database first:)"),nl,!.
 
 % Function for deletion, will work same as adding
 deleteword:-write("Please write down the string:"), read_string(user_input,"\n","\t",_,String1),write("Do you wanna save changes :"),write(String1),nl, write("y or n"),nl,get_single_char(C),atom_codes(Y,[C]),checkdlt(Y,String1) .
-checkdlt(y,String1):- loadingstatus(1),knowledgeBase(String1),retract(knowledgeBase(String1)),write("Modification done"),nl,main_,!.
-checkdlt(y,String1):- loadingstatus(0),knowledgeBase(String1),retract(knowledgeBase(String1)),write("Database is not fully loaded, please load the database first"),nl,main_,!.
-checkdlt(y,_):-loadingstatus(1),write("String not availabele in KB"),nl,main_,!.
-checkdlt(n,_):-main_,!.
-checkdlt(_,_):-write("wrong choice"),nl,main_,!.
+checkdlt(y,String1):- loadingstatus(1),knowledgeBase(String1),retract(knowledgeBase(String1)),write("Modification done"),nl,!.
+checkdlt(y,String1):- loadingstatus(0),knowledgeBase(String1),retract(knowledgeBase(String1)),write("Database is not fully loaded, please load the database first"),nl,!.
+checkdlt(y,_):-loadingstatus(1),write("String not availabele in KB"),nl,!.
+checkdlt(n,_):-!.
+checkdlt(_,_):-write("wrong choice"),nl,!.
 
 % writing a file in DB, if file already exists, it will ask if you wanna
 % overwrite if yes it will over write, or if file does not exist it will
@@ -106,15 +107,15 @@ checkdlt(_,_):-write("wrong choice"),nl,main_,!.
 writedb:-write("please enter the name of the file"),nl, read_string(user_input,"\n","\t",_,String2),checkfilename(String2),!.
 checkfilename(String2):-exists_file(String2),write("File Already Exists, do you want to overwrite?"),nl,write("y or n"),nl,get_single_char(C),atom_codes(Y,[C]),checkoverwrite(Y,String2) .
 checkfilename(String2):-open(String2,write,Out), read_string(user_input,"\n","\t",_,String3)
-    ,write(Out,String3),close(Out),assert(loadedfiles(String2)),assert(databasefile(String2)),retractall(loadingstatus(_)),assert(loadingstatus(0)),main_,! .
+    ,write(Out,String3),close(Out),assert(loadedfiles(String2)),assert(databasefile(String2)),retractall(loadingstatus(_)),assert(loadingstatus(0)),! .
 
 checkoverwrite(y,String2):-open(String2,write,Out), read_string(user_input,"\n","\t",_,String3)
     ,write(Out,String3),close(Out),checkdbforfile(String2).
-checkoverwrite(n,_):-write("Please Select Again"),nl,main_,!.
-checkoverwrite(_,_):-write("Wrong Choice"),nl,main_,!.
+checkoverwrite(n,_):-write("Please Select Again"),nl,!.
+checkoverwrite(_,_):-write("Wrong Choice"),nl,!.
 
-checkdbforfile(String2):-loadedfiles(String2),write("Modification Done!"),nl,retractall(loadingstatus(_)),assert(loadingstatus(0)),main_,!.
-checkdbforfile(String2):-assert(loadedfiles(String2)),reversereadfacts(String2),write("Modification Done!"),nl,retractall(loadingstatus(_)),assert(loadingstatus(0)),main_,!.
+checkdbforfile(String2):-loadedfiles(String2),write("Modification Done!"),nl,retractall(loadingstatus(_)),assert(loadingstatus(0)),!.
+checkdbforfile(String2):-assert(loadedfiles(String2)),reversereadfacts(String2),write("Modification Done!"),nl,retractall(loadingstatus(_)),assert(loadingstatus(0)),!.
 reversereadfacts(String2):-
     loadedfiles(String2),
     String2 \= end_of_file,
@@ -133,39 +134,42 @@ start_guessing:-
     selected_word(Word),
     atom_chars(Word, LetterList),
     guess(LetterList, [], 0),
-    retract(selected_word).
+    retract(selected_word(Word)).
 
 % called recursively in conjunction with end_game to keep the guessing game running
 guess(LetterList, OldUserGuesses, CurrentGuessCount):-
     write('Please guess a letter: '),
-    get_single_char(RawUserGuess),                                    % could add input checks? no numbers, only letters, only lower case??
+    get_single_char(RawUserGuess),
     char_code(UserGuess, RawUserGuess),
-    (member(UserGuess, OldUserGuesses) -> true ; append([UserGuess], OldUserGuesses, NewUserGuesses)),
+    (member(UserGuess, OldUserGuesses) -> append([], OldUserGuesses, NewUserGuesses) ; append([UserGuess], OldUserGuesses, NewUserGuesses)),
     NewGuessCount is CurrentGuessCount + 1,
     write('Your solution:         '),
-    printstatus(LetterList, NewUserGuesses, StarCount),
-    end_game(LetterList, NewUserGuesses, NewGuessCount, StarCount).
+    printstatus(LetterList, NewUserGuesses),
+    end_game(LetterList, NewUserGuesses, NewGuessCount).
 
 % check if the game is finished, if so print the result, else continue with guess/3
-end_game(_, _, GuessCount, 0):-
-    !, writeln(''),
+end_game(LetterList, UserGuesses, GuessCount):-
+    word_complete(LetterList, UserGuesses), !,
+    writeln(''),
     write('Congratulations! It took you only '), write(GuessCount), writeln(' guesses.').
-end_game(LetterList, UserGuesses, GuessCount, _):-
+end_game(LetterList, UserGuesses, GuessCount):-
     guess(LetterList, UserGuesses, GuessCount).
 
+% we check if every letter in the word (Letterlist) was guessed by the user, only
+% then will we evaluate to true
+word_complete([], _):-!.
+word_complete([LetterListHead | LetterListTail], UserGuesses):-
+    member(LetterListHead, UserGuesses),
+    word_complete(LetterListTail, UserGuesses).
+
 % print combination of '*' and letters, depending on the guesses of the user
-% as we have to traverse the whole LetterList once and for each of the letters in there
-% check if the user has already guessed this letter, we double-use this function to
-% track how many '*' are left
-% TF: might change that in the future to separate the different functionalities
-printstatus([], _, 0):-!, writeln('').
-printstatus([LetterListHead | LetterListTail], UserGuesses, OldStarCount):-
+printstatus([], _):-!, writeln('').
+printstatus([LetterListHead | LetterListTail], UserGuesses):-
     member(LetterListHead, UserGuesses), !,
     write(LetterListHead),
-    printstatus(LetterListTail, UserGuesses, OldStarCount).
-printstatus([_ | LetterListTail], UserGuesses, NewStarCount):-
+    printstatus(LetterListTail, UserGuesses).
+printstatus([_ | LetterListTail], UserGuesses):-
     print_stars(1),
-    printstatus(LetterListTail, UserGuesses, OldStarCount),
-    NewStarCount is OldStarCount + 1.
+    printstatus(LetterListTail, UserGuesses).
 
 
