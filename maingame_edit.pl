@@ -56,7 +56,7 @@ write("g : Guess a word"),nl,
 write("e : End the game"),nl,
     get_single_char(C),atom_codes(Y,[C]),check(Y).
 
-check(r):-write("Please enter the file name"),read_string(user_input,"\n","\t",_,String0),checkfileindb(String0),!.
+check(r):-write("Please enter the file name"),read_string(user_input,"\n","\t",_,String0),load_database(String0),!.
 check(l):-listofKB,!.
 check(a):-addword.
 check(d):-deleteword,main_,!.
@@ -69,6 +69,17 @@ check(_):-write("wrong choice"),nl,main_.
 % it will also load the file
 checkfileindb(String0):-databasefile(String0),readfacts(String0),main_,!.
 checkfileindb(_):-write("File does not exist"),nl,main_,!.
+
+load_database(FileName):-
+    (exists_file(FileName) ->
+        open(FileName,read,InputList),
+        repeat,
+        read_line_to_string(InputList,Line),
+        (knowledgeBase(Line) -> true; asserta(knowledgeBase(Line))),
+        Line=end_of_file, close(InputList),
+        retract(knowledgeBase(end_of_file));
+        writeln('File does not exist')),
+    main_.
 
 % it will check if all the files are loaded in KB if not it will load
 % them
