@@ -1,3 +1,7 @@
+% create standalone executable file of prolog code:
+% swipl -q -O -t main -o filename -c file.pl
+
+
 % main function to be called for the guessing-part
 start_guessing:-
     selected_word(Word),
@@ -38,3 +42,18 @@ printstatus([_ | LetterListTail], UserGuesses, NewStarCount):-
     NewStarCount is OldStarCount + 1.
 
 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Database-stuff
+
+% takes FileName as variable, asserts every word in this file to knowledgeBase, recursively calls main_
+load_database(FileName):-
+    open(FileName,read,InputList),
+    repeat,
+    read_line_to_string(InputList,Line),
+    assert(knowledgeBase(Line)),
+    Line=end_of_file, close(InputList),
+    retract(knowledgeBase(end_of_file)).
+    main_.
