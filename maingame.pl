@@ -129,7 +129,8 @@ reversereadfacts(String2):-
 start_guessing:-
     selected_word(Word),
     atom_chars(Word, LetterList),
-    guess(LetterList, [], 0).
+    guess(LetterList, [], 0),
+    retract(selected_word).
 
 % called recursively in conjunction with end_game to keep the guessing game running
 guess(LetterList, OldUserGuesses, CurrentGuessCount):-
