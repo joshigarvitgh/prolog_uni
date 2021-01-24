@@ -4,7 +4,7 @@
 :- dynamic (loadedfiles/1). % same as databasefile, but it keeps on changing depending on if modification in some file done or not
 :- dynamic selected_word/1. % this is the word for the gameplay
 %Read the files and put the strings in the knowledge base
-print_stars(0).  
+print_stars(0).
 print_stars(N) :- N>0, write('*'),
            S is N-1, print_stars(S). 
 %gameplay is the predicate for the guessword. the selected word and the print_stars is used to print stars
@@ -12,8 +12,11 @@ guessword:-
     bagof(X,knowledgeBase(X),W),
     random_member(M,W),
     atom_length(M,X),
-    assert(selected_word(M)),
-    print_stars(X).
+    assert(selected_word(M)),         % TF: should be retracted at some point? maybe I've just overlooked that
+    write('Please guess the word: '),
+    print_stars(X),
+    writeln(''),
+    start_guessing.
 
 readfacts(String0):-
     loadedfiles(String0),
@@ -117,3 +120,48 @@ reversereadfacts(String2):-
     read_line_to_string(In,X),
     retract(knowledgeBase(X)),
     X=end_of_file,close(In).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TF: Word-Guessing part
+
+% main function to be called for the guessing-part
+start_guessing:-
+    selected_word(Word),
+    atom_chars(Word, LetterList),
+    guess(LetterList, [], 0).
+
+% called recursively in conjunction with end_game to keep the guessing game running
+guess(LetterList, OldUserGuesses, CurrentGuessCount):-
+    write('Please guess a letter: '),
+    get_single_char(RawUserGuess),                                    % could add input checks? no numbers, only letters, only lower case??
+    char_code(UserGuess, RawUserGuess),
+    (member(UserGuess, OldUserGuesses) -> true ; append([UserGuess], OldUserGuesses, NewUserGuesses)),
+    NewGuessCount is CurrentGuessCount + 1,
+    write('Your solution:         '),
+    printstatus(LetterList, NewUserGuesses, StarCount),
+    end_game(LetterList, NewUserGuesses, NewGuessCount, StarCount).
+
+% check if the game is finished, if so print the result, else continue with guess/3
+end_game(_, _, GuessCount, 0):-
+    !, writeln(''),
+    write('Congratulations! It took you only '), write(GuessCount), writeln(' guesses.').
+end_game(LetterList, UserGuesses, GuessCount, _):-
+    guess(LetterList, UserGuesses, GuessCount).
+
+% print combination of '*' and letters, depending on the guesses of the user
+% as we have to traverse the whole LetterList once and for each of the letters in there
+% check if the user has already guessed this letter, we double-use this function to
+% track how many '*' are left
+% TF: might change that in the future to separate the different functionalities
+printstatus([], _, 0):-!, writeln('').
+printstatus([LetterListHead | LetterListTail], UserGuesses, OldStarCount):-
+    member(LetterListHead, UserGuesses), !,
+    write(LetterListHead),
+    printstatus(LetterListTail, UserGuesses, OldStarCount).
+printstatus([_ | LetterListTail], UserGuesses, NewStarCount):-
+    print_stars(1),
+    printstatus(LetterListTail, UserGuesses, OldStarCount),
+    NewStarCount is OldStarCount + 1.
+
+
