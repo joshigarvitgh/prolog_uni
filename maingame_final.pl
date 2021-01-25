@@ -59,24 +59,34 @@ main_:-
         get_single_char(C),atom_codes(Y,[C]),check(Y).
     
     check(r):-writeln("Please enter the file name"),read_string(user_input,"\n","\t",_,String0),checkfileindb(String0),main_,!.
-    check(l):-listofKB,main_,!.
-    check(a):-addword,main_,!.
-    check(d):-deleteword,main_,main_,!.
+    check(l):-listingSubroutine, main_, !.
+    check(a):-addword,main_,!.               % requires loadinig of all files from the database to memory in order to avoid duplicate entries, use "l" from menu for this
+    check(d):-deleteword,main_,!.      % requires loadinig of all files from the database to memory in order to avoid duplicate entries, use "l" from menu for this
     check(w):-writedb,main_,main_,!.
     check(g):-guessword(),main_,!.
-    check(e):-retractall(knowledgeBase/1),retractall(loadingstatus/1),retractall(databasefile/1),retractall(loadedfiles/1),!.
+    check(e):-retractall(knowledgeBase(_)),retractall(loadingstatus(_)),retractall(databasefile(_)),retractall(loadedfiles(_)),!.
     check(_):-write("wrong choice"),nl,main_.
 
 
 
+listingSubroutine:-
+    writeln("Load all files before listing KB?"), writeln("y or n"),
+    get_single_char(Input),atom_codes(Letter, [Input]), listingCheckInput(Letter).
+listingCheckInput('y'):-!, listofKB.
+listingCheckInput('n'):-!, listing(knowledgeBase/1).
+listingCheckInput(_):-writeln("wrong choice").
+
 % Function for chacking the file, if its in database or not, if yes then
 % it will also load the file
-checkfileindb(String0):-exists_file(String0),readfacts(String0),!.
+checkfileindb(String0):-
+    exists_file(String0),
+    retractall(knowledgeBase(_)),
+    readfacts(String0), !.
 checkfileindb(_):-write("File does not exist"),nl,!.
 % it will check if all the files are loaded in KB if not it will load
 % them
 listofKB:- loaddatabase,listing(knowledgeBase/1),!.
-listofKB:-write("Database is not loaded, please load Database"),nl,main_,!.
+listofKB:-write("Database is not loaded, please load Database"),nl,!.
 
 loaddatabase:- loadedfiles(X),readfacts(X),loaddatabase,!.
 loaddatabase:- write("loading is completed"),assert(loadingstatus(1)),listing(knowledgeBase/1),!.
